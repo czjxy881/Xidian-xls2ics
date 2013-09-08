@@ -34,8 +34,8 @@ END:VEVENT
     dic={} #课程代号为索引的课程详情
     #获得课程详情
     #获得课程详情的起始位置
-    for i in range(0,rows):
-      if sheet.row_values(i)[0]=='课  程'.decode('utf-8'):
+    for i in range(0,rows): 
+      if sheet.row_values(i)[0].replace(' ','')==('课程'.decode('utf-8')):
         rowt=i+2
         break
     ind=[] #确定详情的位置索引
@@ -55,6 +55,7 @@ END:VEVENT
          if j==1:
             if now=='':flag=0;break; #代表没有课程编号
             key=now
+            #print now
             if '0'<now[-1].encode('utf-8')<'9':l[0]+=now[-1].encode('utf-8')
             j+=1;
          l.append(now.encode('utf-8'))
@@ -74,7 +75,7 @@ END:VEVENT
     rows=sheet.nrows;
     cols=sheet.ncols;
     for i in range(0,rows):
-      if sheet.row_values(i)[0]=='课  程'.decode('utf-8'):
+      if sheet.row_values(i)[0].replace(' ','')==('课程'.decode('utf-8')):
         rowt=i+2
         break
     rs=3 #开始行数
@@ -92,6 +93,7 @@ END:VEVENT
     day=int(re.split('\D',s,1)[0])
     c=sheet.name
     s=sheet.cell(rs-2,17).value;
+    print month,day
     while s[0]==' ':s=s[1:]
     icsn=(c+'-'+s).encode('utf-8'); #课程表名称
     year=int(re.split('\D',s,1)[0])
@@ -147,23 +149,29 @@ END:VTIMEZONE'''%icsn)
     nn=0
     self.ny=year;self.nm=month;self.nd=day;
     que=sheet.col_values(1)
+    ddd=sheet.col_values(0)
     for i in range(2,weeks+2):
-      s=sheet.col_values(i)
-      k=0;f=1
+      s=sheet.col_values(i);
+      k=0;f=1;
+      
+
       if self.nm>4 and self.nm<10:f=0
+      print rs,rowt
       for j in range(rs+3,rowt):
         #确定节次
         p=que[j][0]
-        #print p
+      #  print p
         if p=='1':nt=0;
         elif p=='3':nt=1;
         elif p=='5':nt=2;
         elif p=='7':nt=3
         else:nt=4
         if k==0:today='%4d%02d%02dT'%(self.ny,self.nm,self.nd)
+       # print today
        # print k,s[j],today
         k+=1
-        if k==5:self.aday();k=0;
+        #print ddd[j+1]
+        if ddd[j+1]!='':self.aday();k=0;
         s[j]="".join(s[j].split()) #去除空格
         if s[j]=='':continue
         name=""
@@ -190,16 +198,16 @@ END:VTIMEZONE'''%icsn)
           l[8]=''
         ics.write(self.event(today+B[f][nt]+'Z',today+E[f][nt]+'Z',name,detail,l[8]))
         nn+=1
-      self.aday()
+     # self.aday()
       self.aday() #周日
     ics.writelines('END:VCALENDAR')
     ics.close()
     return nn
 
 if __name__=='__main__':
-  xlrd.open_workbook('_02013年上学期全校公选课、小语种必修课课程表.xls'.decode('utf-8'),formatting_info=True)
-  x=xlstoics('_02013年上学期全校公选课、小语种必修课课程表.xls'.decode('utf-8'))
-  s=x.opensh(0)
+  xlrd.open_workbook('全校2013年下学期人文素质限选课课表.xls'.decode('utf-8'),formatting_info=True)
+  x=xlstoics('全校2013年下学期人文素质限选课课表.xls'.decode('utf-8'))
+  s=x.opensh(1)
   dic=x.xls(s)
   print x.ics(dic,s)
 
