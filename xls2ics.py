@@ -5,7 +5,7 @@ class xlstoics():
   file_path=""
   def __init__(self,path):
     self.file_path=path
-    print path
+    #print path
     self.file=xlrd.open_workbook(self.file_path,formatting_info=True)
   
   def event(self,start,end,name,detail,location): #一次事件
@@ -19,15 +19,19 @@ LOCATION:%s
 SUMMARY:%s
 END:VEVENT
 '''%(start,end,detail,location,name)
+      
   def __len__(self):
     return len(self.file.sheets())
   def name(self):
     return self.file.sheets()
     
-  #xls导入
-  def opensh(self,num):
+  #xls导入 打开num页
+  def opensh(self,num): 
     sheet=self.file.sheets()[num]
     return sheet
+  #
+  #传入参数：表页面
+  #传出课程代号为索引的课程名称Map
   def xls(self,sheet):  
     rows=sheet.nrows;
     cols=sheet.ncols;
@@ -41,13 +45,13 @@ END:VEVENT
     ind=[] #确定详情的位置索引
     for i in range(0,cols):
       t=sheet.cell(rowt-1,i).value+sheet.cell(rowt-2,i).value
-      if t!="" and t!="考核\n方式".decode('utf-8'):
+      if t!="" and t!="考核\n方式".decode('utf-8'): #选修没有考核方式
         ind.append(i);
     
     for i in range(rowt,rows):
        s=sheet.row_values(i)
        j=0;l=[];key="";flag=1
-       if s[0]=="备注".decode('utf-8'):break #课程结束
+       if s[0].replace(' ','')=="备注".decode('utf-8'):break #课程结束
        for j in range(9):
          now=s[ind[j]]
          if isinstance(now,float)==True:now=str(now);
@@ -58,7 +62,7 @@ END:VEVENT
             #print now
             if '0'<now[-1].encode('utf-8')<'9':l[0]+=now[-1].encode('utf-8')
             j+=1;
-         l.append(now.encode('utf-8'))
+         l.append(now.replace(' ','').replace('\n','').encode('utf-8'))
        l.append(0)#选中标志
        if flag==1:dic[key]=l
        #print;
@@ -93,7 +97,7 @@ END:VEVENT
     day=int(re.split('\D',s,1)[0])
     c=sheet.name
     s=sheet.cell(rs-2,17).value;
-    print month,day
+    #print month,day
     while s[0]==' ':s=s[1:]
     icsn=(c+'-'+s).encode('utf-8'); #课程表名称
     year=int(re.split('\D',s,1)[0])
@@ -130,7 +134,7 @@ END:VTIMEZONE'''%icsn)
         a=cell.ctype;
         b=cell.value;
         if b=='节日'.decode('utf-8'):continue;
-        print l,r,u,d,b
+        #print l,r,u,d,b
         for i in range(l,r):
           for j in range(u,d):
              sheet.put_cell(j,i,a,b,0)
@@ -145,7 +149,7 @@ END:VTIMEZONE'''%icsn)
     B=[BS,BW];E=[ES,EW]
     
     #确定课程
-    Name=['','','学时:','学分:','','主讲老师:','职称:','教室:','']
+    Name=['','','学时:','学分:','性质:','主讲老师:','职称:','教室:','']
     nn=0
     self.ny=year;self.nm=month;self.nd=day;
     que=sheet.col_values(1)
@@ -156,7 +160,7 @@ END:VTIMEZONE'''%icsn)
       
 
       if self.nm>4 and self.nm<10:f=0
-      print rs,rowt
+      #print rs,rowt
       for j in range(rs+3,rowt):
         #确定节次
         p=que[j][0]
@@ -183,7 +187,7 @@ END:VTIMEZONE'''%icsn)
          # if s[j]=='电实'.decode('utf-8'):
           # print l
         except:
-          print s[j]
+          #print s[j]
           continue
         if l[-1]==0:continue #去除未选中项
         name+=l[0]
@@ -196,7 +200,7 @@ END:VTIMEZONE'''%icsn)
         if ff==1:
           detail='考试！'
           l[8]=''
-        ics.write(self.event(today+B[f][nt]+'Z',today+E[f][nt]+'Z',name,detail,l[8]))
+        ics.write(self.event(today+B[f][nt]+'Z',today+E[f][nt]+'Z',name,detail,l[7]))
         nn+=1
      # self.aday()
       self.aday() #周日
