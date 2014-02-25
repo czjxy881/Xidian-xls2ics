@@ -19,7 +19,8 @@ LOCATION:%s
 SUMMARY:%s
 END:VEVENT
 '''%(start,end,detail,location,name)
-      
+      
+
   def __len__(self):
     return len(self.file.sheets())
   def name(self):
@@ -29,9 +30,12 @@ END:VEVENT
   def opensh(self,num): 
     sheet=self.file.sheets()[num]
     return sheet
-  #
-  #传入参数：表页面
-  #传出课程代号为索引的课程名称Map
+  
+#
+  
+#传入参数：表页面
+  
+#传出课程代号为索引的课程名称Map
   def xls(self,sheet):  
     rows=sheet.nrows;
     cols=sheet.ncols;
@@ -75,6 +79,9 @@ END:VEVENT
       if(self.nd>self.dd[self.nm]+flag):
         self.nm+=1;self.nd=1;
         if self.nm>12:self.nm=1;self.ny+=1;
+  ###
+  #  传入dic代表选中文件，第一位为0代表未选中
+  ###
   def ics(self,dic,sheet):
     rows=sheet.nrows;
     cols=sheet.ncols;
@@ -187,8 +194,18 @@ END:VTIMEZONE'''%icsn)
          # if s[j]=='电实'.decode('utf-8'):
           # print l
         except:
-          #print s[j]
-          continue
+          t=s[j].split('/'); #多课程分解
+          if len(t)>1:
+            for tempi in t:
+              try:
+                l=dic[tempi] #选取第一门选中的课，如果选择多门课同时上会出错
+                if l[-1]!=0:break
+              except:
+               # print tempi
+                continue
+          else:
+           # print s[j]
+            continue
         if l[-1]==0:continue #去除未选中项
         name+=l[0]
         detail=''
@@ -209,8 +226,8 @@ END:VTIMEZONE'''%icsn)
     return nn
 
 if __name__=='__main__':
-  xlrd.open_workbook('全校2013年下学期人文素质限选课课表.xls'.decode('utf-8'),formatting_info=True)
-  x=xlstoics('全校2013年下学期人文素质限选课课表.xls'.decode('utf-8'))
+  xlrd.open_workbook('计算机学院2011级课表（2014上学期）.xls'.decode('utf-8'),formatting_info=True)
+  x=xlstoics('计算机学院2011级课表（2014上学期）.xls'.decode('utf-8'))
   s=x.opensh(1)
   dic=x.xls(s)
   print x.ics(dic,s)
