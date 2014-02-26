@@ -12,8 +12,12 @@ version:0.1.3<br />
 
 使用方法：
 
-使用电脑需有python 2及xlrd包，下载kcb.pyw及xls2ics.py和Pmw.1.3.3.tar.gz并解压到同一文件夹,运行kcb.py即可
+使用电脑需有python 2及xlrd包，下载kcb.pyw及xls2ics.py和Pmw.1.3.3.tar.gz并解压到同一文件夹,运行kcb.py即可导出
+
+导出ics格式文件和kcb.pyw在同一文件夹下，再自行导入日历程序即可
 
 附：
+
 xlrd包下载地址：https://pypi.python.org/pypi/xlrd/0.9.2 
+
 xlrd安装方法：切换到解压目录下，控制台输入python setup.py install
