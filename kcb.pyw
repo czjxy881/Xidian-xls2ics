@@ -1,236 +1,134 @@
-# -*- coding: utf-8 -*-
-import xlrd,re
-from tkMessageBox import *                          
-class xlstoics():
-  file_path=""
-  def __init__(self,path):
-    self.file_path=path
-    #print path
-    self.file=xlrd.open_workbook(self.file_path,formatting_info=True)
-  
-  def event(self,start,end,name,detail,location): #一次事件
-       return '''
-BEGIN:VEVENT
-DTSTART:%s
-DTEND:%s
-CLASS:PUBLIC
-DESCRIPTION:%s
-LOCATION:%s
-SUMMARY:%s
-END:VEVENT
-'''%(start,end,detail,location,name)
-      
-
-  def __len__(self):
-    return len(self.file.sheets())
-  def name(self):
-    return self.file.sheets()
-    
-  #xls导入 打开num页
-  def opensh(self,num): 
-    sheet=self.file.sheets()[num]
-    return sheet
-  
-#
-  
-#传入参数：表页面
-  
-#传出课程代号为索引的课程名称Map
-  def xls(self,sheet):  
-    rows=sheet.nrows;
-    cols=sheet.ncols;
-    dic={} #课程代号为索引的课程详情
-    #获得课程详情
-    #获得课程详情的起始位置
-    for i in range(0,rows): 
-      if sheet.row_values(i)[0].replace(' ','')==('课程'.decode('utf-8')):
-        rowt=i+2
-        break
-    ind=[] #确定详情的位置索引
-    for i in range(0,cols):
-      t=sheet.cell(rowt-1,i).value+sheet.cell(rowt-2,i).value
-      if t!="" and t!="考核\n方式".decode('utf-8'): #选修没有考核方式
-        ind.append(i);
-    
-    for i in range(rowt,rows):
-       s=sheet.row_values(i)
-       j=0;l=[];key="";flag=1
-       if s[0].replace(' ','')=="备注".decode('utf-8'):break #课程结束
-       for j in range(9):
-         now=s[ind[j]]
-         if isinstance(now,float)==True:now=str(now);
-         now="".join(now.split(" "))
-         if j==1:
-            if now=='':flag=0;break; #代表没有课程编号
-            key=now
-            #print now
-            if '0'<now[-1].encode('utf-8')<'9':l[0]+=now[-1].encode('utf-8')
-            j+=1;
-         l.append(now.replace(' ','').replace('\n','').encode('utf-8'))
-       l.append(0)#选中标志
-       if flag==1:dic[key]=l
-       #print;
-    return dic
-  dd=[0,31,28,31,30,31,30,31,31,30,31,30,31]
-  nd=0;ny=0;nm=0
-  def aday(self): 
-      self.nd+=1;flag=0
-      if self.nm==2 and self.ny%4==0 and (self.ny%100!=0 or self.ny%400==0):flag=1;
-      if(self.nd>self.dd[self.nm]+flag):
-        self.nm+=1;self.nd=1;
-        if self.nm>12:self.nm=1;self.ny+=1;
-  ###
-  #  传入dic代表选中文件，第一位为0代表未选中
-  ###
-  def ics(self,dic,sheet):
-    rows=sheet.nrows;
-    cols=sheet.ncols;
-    for i in range(0,rows):
-      if sheet.row_values(i)[0].replace(' ','')==('课程'.decode('utf-8')):
-        rowt=i+2
-        break
-    rs=3 #开始行数
-    #确定学期起始时间
-    #month对应中文
-    mm={'一月':1,"二月":2,'三月':3,'四月':4,'五月':5,'六月':6,'七月':7,'八月':8,
-       '九月':9,'十月':10,'十一月':11,'十二月':12}
-    while isinstance(sheet.cell(rs,2).value,float)!=True:
-      rs+=1
-    rs-=1
-    s=sheet.cell(rs,2).value.encode('utf-8')
-    while s[-1]==' ':s=s[:-1] #月份末尾可能出现空格…………
-    month=mm[s]
-    s=sheet.cell(rs+2,2).value
-    day=int(re.split('\D',s,1)[0])
-    c=sheet.name   
-    for i in range(1,rs):    
-      s=sheet.cell(rs-i,17).value;
-      if s.strip()!="":continue
-    while s[0]==' ':s=s[1:]
-    icsn=(c+'-'+s).encode('utf-8'); #课程表名称
-    year=int(re.split('\D',s,1)[0])
-    
-    #ics文件开始
-    ics=open('%s.ics'%icsn.decode('utf-8').encode('cp936'),'w');
-    ics.write('''BEGIN:VCALENDAR
-METHOD:PUBLISH
-X-WR-CALNAME:%s
-X-WR-TIMEZONE:Asia/Shanghai
-BEGIN:VTIMEZONE
-TZID:Asia/Shanghai
-X-LIC-LOCATION:Asia/Shanghai
-BEGIN:STANDARD
-TZOFFSETFROM:+0800
-TZOFFSETTO:+0800
-TZNAME:CST
-DTSTART:19700101T000000
-END:STANDARD
-END:VTIMEZONE'''%icsn)
-    
-    
-    #确定学期周数
-    weeks=cols-1;
-    while sheet.cell(rs+1,weeks)=="": weeks-=1
-    weeks-=2
-    rowt-=2 #确定课表边界
-    
-    #扩展课程里的合并单元格
-    for block in sheet.merged_cells:
-      u,d,l,r=block
-      if l>1 and  r<weeks and u>rs+2 and d<rowt:
-        cell=sheet.cell(u,l)
-        a=cell.ctype;
-        b=cell.value;
-        if b=='节日'.decode('utf-8'):continue;
-        #print l,r,u,d,b
-        for i in range(l,r):
-          for j in range(u,d):
-             sheet.put_cell(j,i,a,b,0)
-    
-    #确定课程时间
-    #冬季
-    BW=['003000','022500','060000','075500','110000']
-    EW=['020500','040000','073500','093000','123000']
-    #夏季
-    BS=['003000','022500','063000','082500','113000']
-    ES=['020500','040000','080500','100000','130000']
-    B=[BS,BW];E=[ES,EW]
-    
-    #确定课程
-    Name=['','','学时:','学分:','性质:','主讲老师:','职称:','教室:','']
-    nn=0
-    self.ny=year;self.nm=month;self.nd=day;
-    que=sheet.col_values(1)
-    ddd=sheet.col_values(0)
-    for i in range(2,weeks+2):
-      s=sheet.col_values(i);
-      k=0;f=1;
-      
-
-      if self.nm>4 and self.nm<10:f=0
-      #print rs,rowt
-      for j in range(rs+3,rowt):
-        #确定节次
-        p=que[j][0]
-      #  print p
-        if p=='1':nt=0;
-        elif p=='3':nt=1;
-        elif p=='5':nt=2;
-        elif p=='7':nt=3
-        else:nt=4
-        if k==0:today='%4d%02d%02dT'%(self.ny,self.nm,self.nd)
-       # print today
-       # print k,s[j],today
-        k+=1
-        #print ddd[j+1]
-        if ddd[j+1]!='':self.aday();k=0;
-        s[j]="".join(s[j].split()) #去除空格
-        if s[j]=='':continue
-        name=""
-        ff=0
-        if s[j][-1]=='0':
-          s[j]=s[j][:-1];name="考试:";ff=1
+# coding:utf-8
+from Tkinter import *
+from tkFileDialog import *
+from tkMessageBox import *
+from xls2ics import *
+import xlrd,re,Pmw
+x=0
+def Fileopen(): #打开文件
+    r=askopenfilename(title='选择课程表',filetypes=[('Excel文件','*.xls *.xlsx')])
+    eny_path.delete(0,END)
+    eny_path.insert(0,r)
+def load():
+    global file_path,x,f,Sheet,Dic,now
+    s=eny_path.get()
+    if s[-3:]!="xls" and s[-4:]!="xlsx":
+        showerror('错误','文件格式错误')
+    else:
         try:
-          l=dic[s[j]]
-         # if s[j]=='电实'.decode('utf-8'):
-          # print l
+            x=xlstoics(s)
         except:
-          t=s[j].split('/'); #多课程分解
-          if len(t)>1:
-            for tempi in t:
-              try:
-                l=dic[tempi] #选取第一门选中的课，如果选择多门课同时上会出错
-                if l[-1]!=0:break
-              except:
-               # print tempi
-                continue
-          else:
-           # print s[j]
-            continue
-        if l[-1]==0:continue #去除未选中项
-        name+=l[0]
-        detail=''
-        for t in range(2,9):
-          if l[t]=='':continue;
-          if ff==1 and t==8:continue;
-          detail+=Name[t]+l[t]+'\\n'
-        #print detail
-        if ff==1:
-          detail='考试！'
-          l[8]=''
-        ics.write(self.event(today+B[f][nt]+'Z',today+E[f][nt]+'Z',name,detail,l[7]))
-        nn+=1
-     # self.aday()
-      self.aday() #周日
-    ics.writelines('END:VCALENDAR')
-    ics.close()
-    return nn
+           showerror('错误','文件打开失败')
+        Sheet=[]
+        Dic=[]
+        now.set(0)
+        f.destroy()
+        f=Frame(root,width=385,height=220,relief=GROOVE,borderwidth=2)
+        f.place(relx=0.02,y=65)
+        Label(root,text='具体课程:').place(relx=0.06,y=55,anchor=NW)
+        ff=Pmw.ScrolledFrame(f,labelpos=N,label_text=" ",usehullsize=1,hull_height=75,hull_width=380)
+        ff.pack()
+        a=ff.interior()
+        width=14
+        try:
+         for i in range(len(x)):
+            sheet=x.opensh(i)
+            Sheet.append(sheet)
+            Dic.append(x.xls(sheet))
+            Radiobutton(a,variable=now,value=i,indicatoron=0,width=width,text=sheet.name,command=change).grid(row=0,column=i)
+        except:
+            showerror('错误','读取错误，请检查格式或联系作者')
+        change()
+        but_der =Button(root,text='导出',command=der)
+        but_der.place(anchor=NE,x=370,y=275,width=50,height=25)
+        Label(root,text='所有ics均导出到本程序所在目录下').place(relx=0.43,y=55,anchor=NW)
+def change():#项目卡变化
+   global now,ssf
+   t=now.get()
+   ssf.destroy()
+   ssf=Pmw.ScrolledFrame(f,usehullsize=1,hull_height=132,hull_width=380)
+   ssf.pack()
+   sf=ssf.interior()
+   num=0
+   #if t==0:return
+   for i in Dic[t]:
+      # print i
+       l=Dic[t][i]
+      # print l
+      # print l[0]
+       cc=Checkbutton(sf,text=l[0],command=(lambda i=i:fuch(i)))
+       if l[9]==1:cc.select()
+       cc.grid(row=num%4,column=num/4,sticky=NW)
+       num+=1
 
-if __name__=='__main__':
-  xlrd.open_workbook('下学期课表.xls'.decode('utf-8'),formatting_info=True)
-  x=xlstoics('下学期课表.xls'.decode('utf-8'))
-  s=x.opensh(1)
-  dic=x.xls(s)
-  print x.ics(dic,s)
+def fuch(i):#复选框变化
+    global now
+    t=now.get()
+   # print i
+    Dic[t][i][-1]=1-Dic[t][i][-1]
+   # print Dic[t][i][-1]
 
-      
+def der():
+    global x
+    t=0;a=0
+    try:
+     for i in range(len(x)):
+        num=0
+        for j in Dic[i]:
+            if Dic[i][j][-1]==1:num+=1
+        if num==0:continue
+        a+=x.ics(Dic[i],Sheet[i])
+        t+=num
+     showinfo('成功','成功导出%d门课,共%d次活动。\nPS:每个分页均有一个导出文件!'%(t,a))
+    except:
+      showerror('错误','导出失败，请检查写入权限或联系作者')
+
+file_path=""
+root=Tk() #主界面
+w,h = root.maxsize()
+w-=400
+h-=300
+root.geometry("400x300+%d+%d"%(w/2,h/2))
+root.resizable(False,False)
+root.title("西电课表导入 作者Email:czjxy8898@gmail.com")
+lab_excel=Label(root,text="Excel文件路径",anchor=W)
+lab_excel.pack(anchor=NW,fill=X)
+eny_path=Entry(root,width='48') #路径输入框
+eny_path.pack(anchor=NW,side="left")
+but_path=Button(root,text="...",command=Fileopen)
+but_path.pack(anchor=NE,side='left',fill=X)
+but_load=Button(root,text="载入",command=load)
+but_load.pack(anchor=NW,side='left')
+#读入框完成
+
+
+f=Frame(root,width=385,height=220,relief=GROOVE,borderwidth=2)
+f.place(relx=0.02,y=65)
+Label(root,text='选择课程:').place(relx=0.06,y=55,anchor=NW)
+Label(root,text='请选择EXCEL文件路径！').place(relx=0.34,rely=0.5,anchor=NW)
+ssf=Frame(f,width=380,height=140)
+Sheet=[]#存放所有sheet
+Dic=[]#存放所有dic
+now=IntVar()#现在选中的sheet
+vv=StringVar()#复选框
+
+root.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
