@@ -102,9 +102,10 @@ END:VEVENT
     month=mm[s]
     s=sheet.cell(rs+2,2).value
     day=int(re.split('\D',s,1)[0])
-    c=sheet.name
-    s=sheet.cell(rs-2,17).value;
-    #print month,day
+    c=sheet.name   
+    for i in range(1,rs):    
+      s=sheet.cell(rs-i,17).value;
+      if s.strip()!="":continue
     while s[0]==' ':s=s[1:]
     icsn=(c+'-'+s).encode('utf-8'); #课程表名称
     year=int(re.split('\D',s,1)[0])
@@ -226,8 +227,8 @@ END:VTIMEZONE'''%icsn)
     return nn
 
 if __name__=='__main__':
-  xlrd.open_workbook('计算机学院2011级课表（2014上学期）.xls'.decode('utf-8'),formatting_info=True)
-  x=xlstoics('计算机学院2011级课表（2014上学期）.xls'.decode('utf-8'))
+  xlrd.open_workbook('下学期课表.xls'.decode('utf-8'),formatting_info=True)
+  x=xlstoics('下学期课表.xls'.decode('utf-8'))
   s=x.opensh(1)
   dic=x.xls(s)
   print x.ics(dic,s)
